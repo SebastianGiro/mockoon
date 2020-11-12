@@ -287,6 +287,52 @@ const createAppMenu = function () {
   });
 
   menu.push({
+    label: 'Piono Save',
+    submenu: [
+      {
+        label: 'Quick load',
+        click: function () {
+          mainWindow.webContents.send('keydown', {
+            action: 'LOAD_FILE_QUICK'
+          });
+        }
+      },
+      {
+        label: 'Quick save',
+        click: function () {
+          mainWindow.webContents.send('keydown', {
+            action: 'SAVE_FILE_QUICK'
+          });
+        }
+      },
+      {
+        label: 'Load',
+        click: function () {
+          mainWindow.webContents.send('keydown', {
+            action: 'LOAD_FILE'
+          });
+        }
+      },
+      {
+        label: 'Save',
+        click: function () {
+          mainWindow.webContents.send('keydown', {
+            action: 'SAVE_FILE'
+          });
+        }
+      },
+      {
+        label: 'Open file path',
+        click: function () {
+          mainWindow.webContents.send('keydown', {
+            action: 'OPEN_DEFAULT_FOLDER'
+          });
+        }
+      }
+    ]
+  });
+
+  menu.push({
     label: 'Help',
     submenu: [
       {

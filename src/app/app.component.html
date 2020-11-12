@@ -210,6 +210,30 @@
                     </div>
                   </div>
 
+                  <div class="row" [formGroup]="activeEnvironmentPathForm">
+                    <div class="col">
+                      <app-title-separator heading="Import/Export" icon="folder" iconClasses="text-warning" docLink="PATH"></app-title-separator>
+
+                      <div class="form-inline pl-4">
+                        <div class="input-group col-9">
+                          <div class="input-group-prepend">
+                            <label class="mr-4" for="PATH">Default path</label>
+                            <button class="btn btn-link" (click)="selectEnvironmentDefaultPath()" ngbTooltip="Browse files">
+                              <i class="material-icons">find_in_page</i>
+                            </button>
+                          </div>
+                          <input id="PATH" type="text" class="form-control" formControlName="defaultFilePath">
+                          <div class="input-group-prepend">
+                            <span class="input-group-text text-danger"
+                                  ngbTooltip="Reset file" (click)="resetEnvironmentDefaultPath()">
+                              <i class="material-icons">delete</i>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="row flex-fill mh0">
                     <div class="col d-flex flex-column h-100">
                       <app-title-separator heading="Environment headers" subheading="Headers will be added to all routes of this environment" icon="featured_play_list" iconClasses="text-purple" docLink="headers"></app-title-separator>

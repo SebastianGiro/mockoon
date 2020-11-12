@@ -18,6 +18,7 @@ import { Errors } from 'src/app/enums/errors.enum';
 import { Messages } from 'src/app/enums/messages.enum';
 import { OldExport } from 'src/app/models/data.model';
 import { DataService } from 'src/app/services/data.service';
+import { EnvironmentsService } from 'src/app/services/environments.service';
 import { EventsService } from 'src/app/services/events.service';
 import { MigrationService } from 'src/app/services/migration.service';
 import { OpenAPIConverterService } from 'src/app/services/openapi-converter.service';
@@ -43,6 +44,7 @@ export class ImportExportService {
   constructor(
     private store: Store,
     private toastService: ToastsService,
+    private environmentsService: EnvironmentsService,
     private eventsService: EventsService,
     private dataService: DataService,
     private migrationService: MigrationService,
@@ -118,6 +120,111 @@ export class ImportExportService {
   }
 
   /**
+   * Save quick environment
+   */
+  public async saveQuickEnvironment() {
+    let defaultPath = localStorage.getItem(
+      this.store.get('activeEnvironmentUUID')
+    );
+
+    if (!defaultPath) {
+      this.saveEnvironmentToFile();
+    }
+  }
+
+  /**
+   * Load quick environment
+   */
+  public async loadQuickEnvironment() {
+    let defaultPath = localStorage.getItem(
+      this.store.get('activeEnvironmentUUID')
+    );
+
+    if (!defaultPath) {
+      this.loadEnvironmentFromFile();
+    }
+  }
+
+  /**
+   * Load environment in default path
+   */
+  public async loadEnvironmentFromFile() {
+    const dialogResult = await this.dialog.showOpenDialog(
+      this.BrowserWindow.getFocusedWindow(),
+      {
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+        title: 'Load file (JSON)'
+      }
+    );
+
+    const defaultPath =
+      dialogResult.filePaths && dialogResult.filePaths[0]
+        ? dialogResult.filePaths[0]
+        : null;
+
+    if (dialogResult.canceled || !defaultPath) {
+      return;
+    }
+
+    try {
+      readFile(defaultPath, 'utf-8', (error, fileContent) => {
+        if (error) {
+          this.toastService.addToast('error', Errors.IMPORT_ERROR);
+        } else {
+          const importedData: Export & OldExport = JSON.parse(fileContent);
+
+          this.import(importedData, true);
+          console.log(importedData.data[0].item.uuid);
+
+          localStorage.setItem(importedData.data[0].item.uuid, defaultPath);
+
+          this.eventsService.analyticsEvents.next(AnalyticsEvents.IMPORT_FILE);
+        }
+      });
+    } catch (error) {
+      this.logger.error(`Error while importing from file: ${error.message}`);
+    }
+  }
+
+  /**
+   * Save environment in default path
+   */
+  public async saveEnvironmentToFile() {
+    const dialogResult = await this.dialog.showSaveDialog(
+      this.BrowserWindow.getFocusedWindow(),
+      {
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+        title: 'Save file (JSON)'
+      }
+    );
+
+    const defaultPath = dialogResult.filePath;
+
+    if (dialogResult.canceled || !defaultPath) {
+      return;
+    }
+
+    // clone environment before exporting
+    const dataToExport = cloneDeep(this.store.getActiveEnvironment());
+
+    this.saveDataToFilePath(dataToExport, defaultPath, (error) => {
+      if (error) {
+        this.toastService.addToast('error', Errors.EXPORT_ERROR);
+      } else {
+        this.toastService.addToast('success', Messages.EXPORT_SELECTED_SUCCESS);
+        localStorage.setItem(
+          this.store.getActiveEnvironment().uuid,
+          defaultPath
+        );
+
+        this.eventsService.analyticsEvents.next(
+          AnalyticsEvents.EXPORT_FILE_SELECTED
+        );
+      }
+    });
+  }
+
+  /**
    * Export an environment to the clipboard
    *
    * @param environmentUUID
@@ -132,10 +239,13 @@ export class ImportExportService {
     try {
       // reset environment before exporting
       clipboard.writeText(
-        this.prepareExport({
-          data: cloneDeep(environment),
-          subject: 'environment'
-        })
+        this.prepareExport(
+          {
+            data: cloneDeep(environment),
+            subject: 'environment'
+          },
+          false
+        )
       );
 
       this.toastService.addToast(
@@ -319,6 +429,30 @@ export class ImportExportService {
    * @param filePath
    * @param callback
    */
+  private saveDataToFilePath(dataToExport, filePath, callback) {
+    try {
+      writeFile(
+        filePath,
+        this.prepareExport(
+          { data: dataToExport, subject: 'environment' },
+          false
+        ),
+        callback
+      );
+    } catch (error) {
+      this.logger.error(`Error while exporting environments: ${error.message}`);
+
+      this.toastService.addToast('error', Errors.EXPORT_ERROR);
+    }
+  }
+
+  /**
+   * Writes JSON data to the specified filePath in Mockoon format.
+   *
+   * @param dataToExport
+   * @param filePath
+   * @param callback
+   */
   private exportDataToFilePath(dataToExport, filePath, callback) {
     try {
       writeFile(
@@ -348,7 +482,8 @@ export class ImportExportService {
       | {
           data: Route;
           subject: 'route';
-        }
+        },
+    renewUUID: boolean = true
   ): string {
     let dataToExport: ExportData = [];
 
@@ -357,11 +492,16 @@ export class ImportExportService {
       : [params.data];
 
     dataToExport = data.map((dataItem) => {
-      // erase UUID to easier sharing
-      dataItem =
-        params.subject === 'environment'
-          ? this.dataService.renewEnvironmentUUIDs(<Environment>dataItem, true)
-          : this.dataService.renewRouteUUIDs(<Route>dataItem, true);
+      if (renewUUID) {
+        // erase UUID to easier sharing
+        dataItem =
+          params.subject === 'environment'
+            ? this.dataService.renewEnvironmentUUIDs(
+                <Environment>dataItem,
+                true
+              )
+            : this.dataService.renewRouteUUIDs(<Route>dataItem, true);
+      }
 
       return <ExportDataRoute | ExportDataEnvironment>{
         type: params.subject,
@@ -385,7 +525,7 @@ export class ImportExportService {
    *
    * @param importedData
    */
-  private import(importedData: Export & OldExport) {
+  private import(importedData: Export & OldExport, replace: boolean = false) {
     const dataToImport: Export = this.convertOldExports(importedData);
 
     if (!dataToImport) {
@@ -396,12 +536,24 @@ export class ImportExportService {
 
     dataToImport.data.forEach((data) => {
       if (data.type === 'environment') {
+        // TODO Should ask you to replace with the new environment
+        const item = data.item;
+        const oldEnv = this.store.getEnvironmentByUUID(item.uuid);
+
+        if (oldEnv) {
+          console.log('Replace old environment:', oldEnv.uuid);
+          this.environmentsService.removeEnvironment(oldEnv.uuid);
+        }
+
         this.migrationService
           .migrateEnvironments([data.item])
           .subscribe(([migratedEnvironment]) => {
-            migratedEnvironment = this.dataService.renewEnvironmentUUIDs(
-              migratedEnvironment
-            );
+            if (!replace) {
+              migratedEnvironment = this.dataService.renewEnvironmentUUIDs(
+                migratedEnvironment
+              );
+            }
+
             this.logger.info(
               `Importing environment ${migratedEnvironment.uuid}`
             );

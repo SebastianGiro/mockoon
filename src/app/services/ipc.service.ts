@@ -1,14 +1,14 @@
 import { Injectable } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer, shell } from 'electron';
 import { distinctUntilChanged, tap } from 'rxjs/operators';
 import { ChangelogModalComponent } from 'src/app/components/changelog-modal.component';
 import { SettingsModalComponent } from 'src/app/components/settings-modal.component';
+import { ScrollDirection } from 'src/app/models/ui.model';
 import { EnvironmentsService } from 'src/app/services/environments.service';
 import { ImportExportService } from 'src/app/services/import-export.service';
 import { UIService } from 'src/app/services/ui.service';
 import { Store } from 'src/app/stores/store';
-import { ScrollDirection } from 'src/app/models/ui.model';
 
 @Injectable({ providedIn: 'root' })
 export class IpcService {
@@ -89,6 +89,26 @@ export class IpcService {
           break;
         case 'EXPORT_FILE_SELECTED':
           this.importExportService.exportActiveEnvironment();
+          break;
+        case 'LOAD_FILE_QUICK':
+          this.importExportService.loadQuickEnvironment();
+          break;
+        case 'SAVE_FILE_QUICK':
+          this.importExportService.saveQuickEnvironment();
+          break;
+        case 'LOAD_FILE':
+          this.importExportService.loadEnvironmentFromFile();
+          break;
+        case 'SAVE_FILE':
+          this.importExportService.saveEnvironmentToFile();
+          break;
+        case 'OPEN_DEFAULT_FOLDER':
+          const defaultFolder = localStorage.getItem(
+            this.store.get('activeEnvironmentUUID')
+          );
+          if (defaultFolder) {
+            shell.showItemInFolder(defaultFolder);
+          }
           break;
       }
     });

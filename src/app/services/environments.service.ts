@@ -196,9 +196,20 @@ export class EnvironmentsService {
   ) {
     if (environmentUUID) {
       this.serverService.stop(environmentUUID);
-
       this.store.update(removeEnvironmentAction(environmentUUID));
     }
+  }
+
+  /**
+   * Prune empty entities
+   */
+  public pruneEmptyEnvironments(
+    environmentUUID: string = this.store.get('activeEnvironmentUUID')
+  ) {
+    if (environmentUUID) {
+      this.serverService.stop(environmentUUID);
+    }
+    this.store.update(removeEnvironmentAction(environmentUUID));
   }
 
   /**
@@ -385,15 +396,17 @@ export class EnvironmentsService {
     const environmentsStatus = this.store.get('environmentsStatus');
 
     // check if environments should be started or stopped. If at least one env is turned off, we'll turn all on
-    const shouldStart = Object.keys(environmentsStatus)
-      .some(uuid => !environmentsStatus[uuid].running || environmentsStatus[uuid].needRestart);
+    const shouldStart = Object.keys(environmentsStatus).some(
+      (uuid) =>
+        !environmentsStatus[uuid].running ||
+        environmentsStatus[uuid].needRestart
+    );
 
-    environments.map(environment => {
+    environments.map((environment) => {
       const environmentState = environmentsStatus[environment.uuid];
 
       if (shouldStart) {
         if (!environmentState.running || environmentState.needRestart) {
-
           // if needs restart, we need to stop first to prevent EADDRINUSE errors
           if (environmentState.needRestart) {
             this.serverService.stop(environment.uuid);

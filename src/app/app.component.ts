@@ -83,6 +83,7 @@ export class AppComponent implements OnInit, AfterViewInit {
   @ViewChild('settingsModal', { static: false })
   public settingsModal: SettingsModalComponent;
   public activeEnvironment$: Observable<Environment>;
+  public activeEnvironmentPathForm: FormGroup;
   public activeEnvironmentForm: FormGroup;
   public activeEnvironmentState$: Observable<EnvironmentStatus>;
   public activeRoute$: Observable<Route>;
@@ -286,6 +287,35 @@ export class AppComponent implements OnInit, AfterViewInit {
   /**
    * Open file browsing dialog
    */
+  public async selectEnvironmentDefaultPath() {
+    const dialogResult = await this.dialog.showOpenDialog(
+      this.BrowserWindow.getFocusedWindow(),
+      { title: 'Choose a file' }
+    );
+
+    if (dialogResult.filePaths && dialogResult.filePaths[0]) {
+      this.activeEnvironmentPathForm
+        .get('defaultFilePath')
+        .setValue(dialogResult.filePaths[0]);
+
+      localStorage.setItem(
+        this.store.get('activeEnvironmentUUID'),
+        dialogResult.filePaths[0]
+      );
+    }
+  }
+
+  /**
+   * Open file browsing dialog
+   */
+  public async resetEnvironmentDefaultPath() {
+    this.activeEnvironmentPathForm.get('defaultFilePath').setValue('');
+    localStorage.removeItem(this.store.get('activeEnvironmentUUID'));
+  }
+
+  /**
+   * Open file browsing dialog
+   */
   public async browseFiles() {
     const dialogResult = await this.dialog.showOpenDialog(
       this.BrowserWindow.getFocusedWindow(),
@@ -315,6 +345,7 @@ export class AppComponent implements OnInit, AfterViewInit {
    *
    * @param payload
    */
+  // NOTE Mark this
   public contextMenuItemClicked(payload: ContextMenuItemPayload) {
     switch (payload.action) {
       case 'env_logs':
@@ -504,6 +535,10 @@ export class AppComponent implements OnInit, AfterViewInit {
    * Init active environment and route forms, and subscribe to changes
    */
   private initForms() {
+    this.activeEnvironmentPathForm = this.formBuilder.group({
+      defaultFilePath: ['']
+    });
+
     this.activeEnvironmentForm = this.formBuilder.group({
       name: [''],
       port: [''],
@@ -577,6 +612,11 @@ export class AppComponent implements OnInit, AfterViewInit {
         distinctUntilKeyChanged('uuid')
       )
       .subscribe((activeEnvironment) => {
+        console.log(activeEnvironment);
+
+        this.activeEnvironmentPathForm.setValue({
+          defaultFilePath: localStorage.getItem(activeEnvironment.uuid) || ''
+        });
         this.activeEnvironmentForm.setValue(
           {
             name: activeEnvironment.name,
