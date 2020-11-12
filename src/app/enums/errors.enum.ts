@@ -2,6 +2,8 @@
  * @deprecated
  */
 export enum Errors {
+  LOAD_ERROR = 'An error occured while loading the file',
+  SAVE_ERROR = 'An error occured while saving the file',
   EXPORT_ERROR = 'An error occured while exporting the file',
   EXPORT_ENVIRONMENT_CLIPBOARD_ERROR = 'An error occured while exporting the environment to the clipboard',
   EXPORT_ROUTE_CLIPBOARD_ERROR = 'An error occured while exporting the route to the clipboard',

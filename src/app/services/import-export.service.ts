@@ -1,15 +1,7 @@
 import { Injectable } from '@angular/core';
-import {
-  Environment,
-  Environments,
-  Export,
-  ExportData,
-  ExportDataEnvironment,
-  ExportDataRoute,
-  Route
-} from '@mockoon/commons';
-import { clipboard, remote } from 'electron';
-import { readFile, writeFile } from 'fs';
+import { Environment,Environments,Export,ExportData,ExportDataEnvironment,ExportDataRoute,Route } from '@mockoon/commons';
+import { clipboard,remote } from 'electron';
+import { readFile,writeFile } from 'fs';
 import { cloneDeep } from 'lodash';
 import { Logger } from 'src/app/classes/logger';
 import { Config } from 'src/app/config';
@@ -24,7 +16,7 @@ import { MigrationService } from 'src/app/services/migration.service';
 import { OpenAPIConverterService } from 'src/app/services/openapi-converter.service';
 import { SchemasBuilderService } from 'src/app/services/schemas-builder.service';
 import { ToastsService } from 'src/app/services/toasts.service';
-import { addEnvironmentAction, addRouteAction } from 'src/app/stores/actions';
+import { addEnvironmentAction,addRouteAction } from 'src/app/stores/actions';
 import { Store } from 'src/app/stores/store';
 
 // Last migration done for each version
@@ -123,47 +115,45 @@ export class ImportExportService {
    * Save quick environment
    */
   public async saveQuickEnvironment() {
-    let defaultPath = localStorage.getItem(
+    const defaultPath = localStorage.getItem(
       this.store.get('activeEnvironmentUUID')
     );
 
-    if (!defaultPath) {
-      this.saveEnvironmentToFile();
-    }
+    this.saveEnvironmentToFile(defaultPath);
   }
 
   /**
    * Load quick environment
    */
   public async loadQuickEnvironment() {
-    let defaultPath = localStorage.getItem(
+    const defaultPath = localStorage.getItem(
       this.store.get('activeEnvironmentUUID')
     );
 
-    if (!defaultPath) {
-      this.loadEnvironmentFromFile();
-    }
+    this.loadEnvironmentFromFile(defaultPath);
   }
 
   /**
-   * Load environment in default path
+   * Load environment in desired path
    */
-  public async loadEnvironmentFromFile() {
-    const dialogResult = await this.dialog.showOpenDialog(
-      this.BrowserWindow.getFocusedWindow(),
-      {
-        filters: [{ name: 'JSON', extensions: ['json'] }],
-        title: 'Load file (JSON)'
+  public async loadEnvironmentFromFile(defaultPath: string = null) {
+    if (!defaultPath) {
+      const dialogResult = await this.dialog.showOpenDialog(
+        this.BrowserWindow.getFocusedWindow(),
+        {
+          filters: [{ name: 'JSON', extensions: ['json'] }],
+          title: 'Load file (JSON)'
+        }
+      );
+
+      defaultPath =
+        dialogResult.filePaths && dialogResult.filePaths[0]
+          ? dialogResult.filePaths[0]
+          : null;
+
+      if (dialogResult.canceled || !defaultPath) {
+        return;
       }
-    );
-
-    const defaultPath =
-      dialogResult.filePaths && dialogResult.filePaths[0]
-        ? dialogResult.filePaths[0]
-        : null;
-
-    if (dialogResult.canceled || !defaultPath) {
-      return;
     }
 
     try {
@@ -178,30 +168,34 @@ export class ImportExportService {
 
           localStorage.setItem(importedData.data[0].item.uuid, defaultPath);
 
+          this.toastService.addToast('success', Messages.LOAD_SELECTED_SUCCESS);
           this.eventsService.analyticsEvents.next(AnalyticsEvents.IMPORT_FILE);
         }
       });
     } catch (error) {
+      this.toastService.addToast('error', Errors.LOAD_ERROR);
       this.logger.error(`Error while importing from file: ${error.message}`);
     }
   }
 
   /**
-   * Save environment in default path
+   * Save environment in desired path
    */
-  public async saveEnvironmentToFile() {
-    const dialogResult = await this.dialog.showSaveDialog(
-      this.BrowserWindow.getFocusedWindow(),
-      {
-        filters: [{ name: 'JSON', extensions: ['json'] }],
-        title: 'Save file (JSON)'
+  public async saveEnvironmentToFile(defaultPath: string = null) {
+    if (!defaultPath) {
+      const dialogResult = await this.dialog.showSaveDialog(
+        this.BrowserWindow.getFocusedWindow(),
+        {
+          filters: [{ name: 'JSON', extensions: ['json'] }],
+          title: 'Save file (JSON)'
+        }
+      );
+
+      defaultPath = dialogResult.filePath;
+
+      if (dialogResult.canceled || !defaultPath) {
+        return;
       }
-    );
-
-    const defaultPath = dialogResult.filePath;
-
-    if (dialogResult.canceled || !defaultPath) {
-      return;
     }
 
     // clone environment before exporting
@@ -209,9 +203,9 @@ export class ImportExportService {
 
     this.saveDataToFilePath(dataToExport, defaultPath, (error) => {
       if (error) {
-        this.toastService.addToast('error', Errors.EXPORT_ERROR);
+        this.toastService.addToast('error', Errors.SAVE_ERROR);
       } else {
-        this.toastService.addToast('success', Messages.EXPORT_SELECTED_SUCCESS);
+        this.toastService.addToast('success', Messages.SAVE_SELECTED_SUCCESS);
         localStorage.setItem(
           this.store.getActiveEnvironment().uuid,
           defaultPath
