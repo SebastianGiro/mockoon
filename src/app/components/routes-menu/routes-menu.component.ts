@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  OnInit,
+  ViewChild
+} from '@angular/core';
+import { Environment, Route } from '@mockoon/commons';
 import { Observable } from 'rxjs';
 import { RoutesContextMenu } from 'src/app/components/context-menu/context-menus';
 import { ContextMenuEvent } from 'src/app/models/context-menu.model';
@@ -6,8 +14,11 @@ import { Settings } from 'src/app/models/settings.model';
 import { EnvironmentsService } from 'src/app/services/environments.service';
 import { EventsService } from 'src/app/services/events.service';
 import { UIService } from 'src/app/services/ui.service';
-import { DuplicatedRoutesTypes, EnvironmentsStatuses, Store } from 'src/app/stores/store';
-import { Environment, Route } from '@mockoon/commons';
+import {
+  DuplicatedRoutesTypes,
+  EnvironmentsStatuses,
+  Store
+} from 'src/app/stores/store';
 
 @Component({
   selector: 'app-routes-menu',
@@ -16,7 +27,7 @@ import { Environment, Route } from '@mockoon/commons';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RoutesMenuComponent implements OnInit {
-  @ViewChild('routesMenu', { static: false }) private routesMenu: ElementRef;
+  @ViewChild('routesMenu') private routesMenu: ElementRef;
   public settings$: Observable<Settings>;
   public activeEnvironment$: Observable<Environment>;
   public activeRoute$: Observable<Route>;
@@ -40,6 +51,19 @@ export class RoutesMenuComponent implements OnInit {
     this.uiService.scrollRoutesMenu.subscribe((scrollDirection) => {
       this.uiService.scroll(this.routesMenu.nativeElement, scrollDirection);
     });
+  }
+
+  /**
+   * Callback called when reordering routes
+   *
+   * @param event
+   */
+  public reorderRoutes(event: CdkDragDrop<string[]>) {
+    this.environmentsService.moveMenuItem(
+      'routes',
+      event.previousIndex,
+      event.currentIndex
+    );
   }
 
   /**
@@ -67,10 +91,10 @@ export class RoutesMenuComponent implements OnInit {
    */
   public openContextMenu(routeUUID: string, event: MouseEvent) {
     // if right click display context menu
-    if (event && event.which === 3) {
+    if (event && event.button === 2) {
       const menu: ContextMenuEvent = {
         event: event,
-        items: RoutesContextMenu(routeUUID)
+        items: RoutesContextMenu(routeUUID, this.store.get('environments'))
       };
 
       this.eventsService.contextMenuEvents.next(menu);

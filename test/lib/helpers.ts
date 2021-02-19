@@ -90,9 +90,23 @@ export class Helpers {
     );
   }
 
+  public async duplicateEnvironment(index: number) {
+    await this.contextMenuClick(
+      `.environments-menu .menu-list .nav-item:nth-of-type(${index})`,
+      3
+    );
+  }
+
   public async addRoute() {
     await this.elementClick(
       '.routes-menu .nav:first-of-type .nav-item .nav-link'
+    );
+  }
+
+  public async removeRoute(index: number) {
+    await this.contextMenuClickAndConfirm(
+      `.routes-menu .menu-list .nav-item:nth-child(${index}) .nav-link`,
+      5
     );
   }
 
@@ -159,6 +173,23 @@ export class Helpers {
     await this.elementClick(
       `.context-menu .context-menu-item:nth-child(${contextMenuItemIndex})`
     );
+  }
+  public async assertContextMenuDisabled(
+    targetMenuItemSelector: string,
+    contextMenuItemIndex: number,
+    disabled: boolean
+  ) {
+    await this.elementClick(targetMenuItemSelector, 'right');
+    const menuEntryClasses = await this.getElementAttribute(
+      `.context-menu .context-menu-item:nth-child(${contextMenuItemIndex})`,
+      'class'
+    );
+
+    if (disabled) {
+      expect(menuEntryClasses).to.include('disabled');
+    } else {
+      expect(menuEntryClasses).not.to.include('disabled');
+    }
   }
 
   public async contextMenuClickAndConfirm(
@@ -330,16 +361,16 @@ export class Helpers {
   public async addResponseRule(rule: ResponseRule) {
     await this.elementClick('app-route-response-rules .btn.btn-link');
     await this.selectByAttribute(
-      'app-route-response-rules .row:last-of-type .form-inline select[formcontrolname="target"]',
+      'app-route-response-rules .rule-item:last-of-type .form-inline select[formcontrolname="target"]',
       'value',
       rule.target
     );
     await this.setElementValue(
-      'app-route-response-rules .row:last-of-type .form-inline input[formcontrolname="modifier"]',
+      'app-route-response-rules .rule-item:last-of-type .form-inline input[formcontrolname="modifier"]',
       rule.modifier
     );
     await this.setElementValue(
-      'app-route-response-rules .row:last-of-type .form-inline input[formcontrolname="value"]',
+      'app-route-response-rules .rule-item:last-of-type .form-inline input[formcontrolname="value"]',
       rule.value
     );
   }
@@ -404,7 +435,7 @@ export class Helpers {
       'input[formcontrolname="port"]',
       'value'
     );
-    await port.should.be.equals(expectedPort.toString());
+    port.should.be.equals(expectedPort.toString());
   }
 
   public async assertActiveEnvironmentName(expectedName: string) {
@@ -412,11 +443,11 @@ export class Helpers {
       'input[formcontrolname="name"]',
       'value'
     );
-    await environmentName.should.be.equals(expectedName.toString());
+    environmentName.should.be.equals(expectedName.toString());
   }
 
   public async openSettingsModal() {
-    await this.sendWebContentsAction('OPEN_SETTINGS');
+    this.sendWebContentsAction('OPEN_SETTINGS');
     await this.waitElementExist('.modal-dialog');
   }
 
@@ -466,7 +497,7 @@ export class Helpers {
   public async clearEnvironmentLogs() {
     await this.switchViewInHeader('ENV_LOGS');
     const selector =
-      '.main-content > .row >.col .btn.btn-link.btn-icon:last-of-type';
+      '.main-content > div:first-of-type .btn.btn-link.btn-icon:last-of-type';
     // click twice to confirm (cannot double click)
     await this.elementClick(selector);
     await this.elementClick(selector);
@@ -531,7 +562,7 @@ export class Helpers {
   public async disableRoute() {
     await this.contextMenuClick(
       '.routes-menu .menu-list .nav-item .nav-link.active',
-      3
+      4
     );
   }
 
@@ -583,7 +614,7 @@ export class Helpers {
     header: Header
   ) {
     const headersComponentSelector = `app-headers-list#${location}`;
-    const inputsSelector = `${headersComponentSelector} .row.headers-list:last-of-type input:nth-of-type`;
+    const inputsSelector = `${headersComponentSelector} .headers-list:last-of-type input:nth-of-type`;
 
     await this.elementClick(`${headersComponentSelector} button`);
     await this.setElementValue(`${inputsSelector}(1)`, header.key);

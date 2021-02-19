@@ -1,3 +1,4 @@
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -18,10 +19,9 @@ import {
   Route,
   RouteResponse
 } from '@mockoon/commons';
-import { NgbTooltipConfig } from '@ng-bootstrap/ng-bootstrap';
+import { NgbConfig, NgbTooltipConfig } from '@ng-bootstrap/ng-bootstrap';
 import { ipcRenderer, remote, shell } from 'electron';
 import { lookup as mimeTypeLookup } from 'mime-types';
-import { DragulaService } from 'ng2-dragula';
 import { merge, Observable, Subject, Subscription } from 'rxjs';
 import {
   distinctUntilChanged,
@@ -47,7 +47,6 @@ import {
   EnvironmentLogs
 } from 'src/app/models/environment-logs.model';
 import { Toast } from 'src/app/models/toasts.model';
-import { DraggableContainerNames } from 'src/app/models/ui.model';
 import { AnalyticsService } from 'src/app/services/analytics.service';
 import { AuthService } from 'src/app/services/auth.service';
 import { EnvironmentsService } from 'src/app/services/environments.service';
@@ -78,9 +77,9 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent implements OnInit, AfterViewInit {
-  @ViewChild('changelogModal', { static: false })
+  @ViewChild('changelogModal')
   public changelogModal: ChangelogModalComponent;
-  @ViewChild('settingsModal', { static: false })
+  @ViewChild('settingsModal')
   public settingsModal: SettingsModalComponent;
   public activeEnvironment$: Observable<Environment>;
   public activeEnvironmentPathForm: FormGroup;
@@ -103,7 +102,6 @@ export class AppComponent implements OnInit, AfterViewInit {
   public environments$: Observable<Environments>;
   public environmentsLogs$: Observable<EnvironmentLogs>;
   public environmentsStatus$: Observable<EnvironmentsStatuses>;
-  public hasEnvironmentHeaders = this.environmentsService.hasEnvironmentHeaders;
   public Infinity = Infinity;
   public isValidURL = IsValidURL;
   public methods = methods;
@@ -121,7 +119,6 @@ export class AppComponent implements OnInit, AfterViewInit {
     private analyticsService: AnalyticsService,
     private authService: AuthService,
     private config: NgbTooltipConfig,
-    private dragulaService: DragulaService,
     private environmentsService: EnvironmentsService,
     private eventsService: EventsService,
     private formBuilder: FormBuilder,
@@ -130,8 +127,11 @@ export class AppComponent implements OnInit, AfterViewInit {
     private toastService: ToastsService,
     private uiService: UIService,
     private ipcService: IpcService,
-    private storageService: StorageService
-  ) {}
+    private storageService: StorageService,
+    private ngbConfig: NgbConfig
+  ) {
+    this.ngbConfig.animation = false;
+  }
 
   // Listen to widow beforeunload event, and verify that no data saving is in progress
   @HostListener('window:beforeunload', ['$event'])
@@ -166,14 +166,6 @@ export class AppComponent implements OnInit, AfterViewInit {
 
     this.logger.info('Initializing application');
 
-    this.dragulaService.dropModel().subscribe((dragResult) => {
-      this.environmentsService.moveMenuItem(
-        dragResult.name as DraggableContainerNames,
-        dragResult.sourceIndex,
-        dragResult.targetIndex
-      );
-    });
-
     this.initForms();
 
     // auth anonymously through firebase
@@ -205,6 +197,19 @@ export class AppComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.ipcService.init(this.changelogModal, this.settingsModal);
+  }
+
+  /**
+   * Callback called when reordering route responses
+   *
+   * @param event
+   */
+  public reorderRouteResponses(event: CdkDragDrop<string[]>) {
+    this.environmentsService.moveMenuItem(
+      'routeResponses',
+      event.previousIndex,
+      event.currentIndex
+    );
   }
 
   /**
@@ -380,6 +385,11 @@ export class AppComponent implements OnInit, AfterViewInit {
       case 'toggle':
         if (payload.subject === 'route') {
           this.toggleRoute(payload.subjectUUID);
+        }
+        break;
+      case 'duplicateToEnv':
+        if (payload.subject === 'route') {
+          this.startRouteDuplicationToAnotherEnvironment(payload.subjectUUID);
         }
         break;
     }
@@ -690,5 +700,14 @@ export class AppComponent implements OnInit, AfterViewInit {
    */
   private toggleRoute(routeUUID?: string) {
     this.environmentsService.toggleRoute(routeUUID);
+  }
+
+  /**
+   * Trigger route movement flow
+   */
+  private startRouteDuplicationToAnotherEnvironment(routeUUID: string) {
+    this.environmentsService.startRouteDuplicationToAnotherEnvironment(
+      routeUUID
+    );
   }
 }

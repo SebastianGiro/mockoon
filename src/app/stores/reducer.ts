@@ -60,20 +60,21 @@ export function environmentReducer(
     case ActionTypes.SET_INITIAL_ENVIRONMENTS: {
       const newEnvironments: Environments = action.environments;
 
-      const newEnvironmentsStatus = newEnvironments.reduce<
-        EnvironmentsStatuses
-      >((environmentsStatus, environment) => {
-        // create status and check if environment has not been migrated on a more recent Mockoon version
-        environmentsStatus[environment.uuid] = {
-          running: false,
-          needRestart: false,
-          disabledForIncompatibility:
-            !!environment.lastMigration &&
-            environment.lastMigration > HighestMigrationId
-        };
+      const newEnvironmentsStatus = newEnvironments.reduce<EnvironmentsStatuses>(
+        (environmentsStatus, environment) => {
+          // create status and check if environment has not been migrated on a more recent Mockoon version
+          environmentsStatus[environment.uuid] = {
+            running: false,
+            needRestart: false,
+            disabledForIncompatibility:
+              !!environment.lastMigration &&
+              environment.lastMigration > HighestMigrationId
+          };
 
-        return environmentsStatus;
-      }, {});
+          return environmentsStatus;
+        },
+        {}
+      );
 
       // find first non disabled environment
       const activeEnvironment = newEnvironments.find(
@@ -106,13 +107,14 @@ export function environmentReducer(
           },
           {}
         ),
-        activeEnvironmentLogsUUID: newEnvironments.reduce<
-          ActiveEnvironmentsLogUUIDs
-        >((activeEnvironmentLogsUUID, environment) => {
-          activeEnvironmentLogsUUID[environment.uuid] = null;
+        activeEnvironmentLogsUUID: newEnvironments.reduce<ActiveEnvironmentsLogUUIDs>(
+          (activeEnvironmentLogsUUID, environment) => {
+            activeEnvironmentLogsUUID[environment.uuid] = null;
 
-          return activeEnvironmentLogsUUID;
-        }, {})
+            return activeEnvironmentLogsUUID;
+          },
+          {}
+        )
       };
       break;
     }
@@ -375,8 +377,14 @@ export function environmentReducer(
       newState = {
         ...state,
         activeEnvironmentUUID: newEnvironment.uuid,
-        activeRouteUUID: newEnvironment.routes[0].uuid,
-        activeRouteResponseUUID: newEnvironment.routes[0].responses[0].uuid,
+        activeRouteUUID: newEnvironment.routes.length
+          ? newEnvironment.routes[0].uuid
+          : null,
+        activeRouteResponseUUID:
+          newEnvironment.routes.length &&
+          newEnvironment.routes[0].responses.length
+            ? newEnvironment.routes[0].responses[0].uuid
+            : null,
         activeTab: 'RESPONSE',
         activeView: 'ROUTE',
         environments,
@@ -902,6 +910,59 @@ export function environmentReducer(
       break;
     }
 
+    case ActionTypes.START_ROUTE_DUPLICATION_TO_ANOTHER_ENVIRONMENT: {
+      newState = {
+        ...state,
+        duplicateRouteToAnotherEnvironment: {
+          moving: true,
+          routeUUID: action.routeUUID
+        }
+      };
+      break;
+    }
+
+    case ActionTypes.FINALIZE_ROUTE_DUPLICATION_TO_ANOTHER_ENVIRONMENT: {
+      newState = {
+        ...state,
+        duplicateRouteToAnotherEnvironment: {
+          moving: false
+        }
+      };
+      break;
+    }
+
+    case ActionTypes.DUPLICATE_ROUTE_TO_ANOTHER_ENVIRONMENT: {
+      const { route, targetEnvironmentUUID } = action;
+      const { environments } = state;
+      const targetEnvironment = environments.find(
+        (environment: Environment) => environment.uuid === targetEnvironmentUUID
+      );
+      const targetEnvironmentStatus =
+        state.environmentsStatus[targetEnvironmentUUID];
+
+      if (targetEnvironment) {
+        targetEnvironment.routes.push(route);
+      }
+
+      newState = {
+        ...state,
+        environments: [...environments],
+        activeRouteUUID: route.uuid,
+        activeRouteResponseUUID: route.responses[0].uuid,
+        activeEnvironmentUUID: targetEnvironmentUUID,
+        activeTab: 'RESPONSE',
+        activeView: 'ROUTE',
+        environmentsStatus: {
+          ...state.environmentsStatus,
+          [targetEnvironmentUUID]: {
+            ...targetEnvironmentStatus,
+            needRestart: targetEnvironmentStatus.running
+          }
+        }
+      };
+      break;
+    }
+
     default:
       newState = state;
       break;
@@ -928,6 +989,7 @@ export function environmentReducer(
       action.type === ActionTypes.ADD_ROUTE ||
       action.type === ActionTypes.REMOVE_ROUTE ||
       action.type === ActionTypes.MOVE_ROUTES ||
+      action.type === ActionTypes.DUPLICATE_ROUTE_TO_ANOTHER_ENVIRONMENT ||
       (action.type === ActionTypes.UPDATE_ROUTE &&
         action.properties &&
         (action.properties.endpoint || action.properties.method))

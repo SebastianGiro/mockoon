@@ -10,6 +10,7 @@ import {
 import { cloneDeep } from 'lodash';
 import { of } from 'rxjs';
 import { concatMap, mergeMap, tap } from 'rxjs/operators';
+import { Logger } from 'src/app/classes/logger';
 import { AnalyticsEvents } from 'src/app/enums/analytics-events.enum';
 import { FocusableInputs } from 'src/app/enums/ui.enum';
 import { EnvironmentProperties } from 'src/app/models/environment.model';
@@ -35,6 +36,7 @@ import {
   moveEnvironmentsAction,
   moveRouteResponsesAction,
   moveRoutesAction,
+  duplicateRouteToAnotherEnvironmentAction,
   navigateEnvironmentsAction,
   navigateRoutesAction,
   removeEnvironmentAction,
@@ -48,6 +50,7 @@ import {
   setActiveTabAction,
   setActiveViewAction,
   setInitialEnvironmentsAction,
+  startRouteDuplicationToAnotherEnvironmentAction,
   updateEnvironmentAction,
   updateRouteAction,
   updateRouteResponseAction
@@ -59,7 +62,6 @@ import {
   TabsNameType,
   ViewsNameType
 } from 'src/app/stores/store';
-import { Logger } from 'src/app/classes/logger';
 
 @Injectable({
   providedIn: 'root'
@@ -270,6 +272,25 @@ export class EnvironmentsService {
   }
 
   /**
+   * Duplicate a route to another environment
+   */
+  public duplicateRouteInAnotherEnvironment(
+    routeUUID: string,
+    targetEnvironmentUUID: string
+  ) {
+    const routeToDuplicate = this.store.getRouteByUUID(routeUUID);
+
+    if (routeToDuplicate) {
+      const newRoute: Route = this.dataService.renewRouteUUIDs(
+        cloneDeep(routeToDuplicate)
+      );
+      this.store.update(
+        duplicateRouteToAnotherEnvironmentAction(newRoute, targetEnvironmentUUID)
+      );
+    }
+  }
+
+  /**
    * Remove a route and save
    */
   public removeRoute(routeUUID: string = this.store.get('activeRouteUUID')) {
@@ -440,18 +461,6 @@ export class EnvironmentsService {
   }
 
   /**
-   * Check if active environment has headers
-   */
-  public hasEnvironmentHeaders() {
-    const activeEnvironment = this.store.getActiveEnvironment();
-
-    return (
-      activeEnvironment &&
-      activeEnvironment.headers.some((header) => !!header.key)
-    );
-  }
-
-  /**
    * Create a route based on a environment log entry
    */
   public createRouteFromLog(logUUID?: string) {
@@ -501,5 +510,12 @@ export class EnvironmentsService {
         AnalyticsEvents.CREATE_ROUTE_FROM_LOG
       );
     }
+  }
+
+  /**
+   * Sends an event for further process of route movement
+   */
+  public startRouteDuplicationToAnotherEnvironment(routeUUID: string) {
+    this.store.update(startRouteDuplicationToAnotherEnvironmentAction(routeUUID));
   }
 }

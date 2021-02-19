@@ -116,7 +116,7 @@ describe('Environment logs', () => {
           1
         );
         await tests.helpers.environmentLogItemEqual(
-          'requestbody',
+          ' requestbody ',
           'request',
           10,
           1
@@ -156,7 +156,7 @@ describe('Environment logs', () => {
           4
         );
         await tests.helpers.environmentLogItemEqual(
-          'responsebody',
+          ' responsebody ',
           'response',
           6,
           1
@@ -322,7 +322,7 @@ describe('Environment logs', () => {
         1
       );
       await tests.helpers.environmentLogItemEqual(
-        'responsebody',
+        ' responsebody ',
         'response',
         6,
         1
@@ -363,7 +363,7 @@ describe('Environment logs', () => {
 
       it('Open request body in editor', async () => {
         await tests.helpers.elementClick(
-          '.environment-logs-content-request .environment-logs-content-title .btn.btn-link'
+          '.environment-logs-content-request .environment-logs-open-request-body'
         );
         await tests.helpers.waitElementExist(
           '.modal-dialog .modal-body .editor'
@@ -374,7 +374,7 @@ describe('Environment logs', () => {
       it('Open response body in editor', async () => {
         await tests.helpers.switchTabInEnvironmentLogs('RESPONSE');
         await tests.helpers.elementClick(
-          '.environment-logs-content-response .environment-logs-content-title .btn.btn-link'
+          '.environment-logs-content-response .environment-logs-open-response-body'
         );
         await tests.helpers.waitElementExist(
           '.modal-dialog .modal-body .editor'

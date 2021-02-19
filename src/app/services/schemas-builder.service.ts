@@ -1,8 +1,14 @@
 import { Injectable } from '@angular/core';
+import {
+  Environment,
+  Header,
+  HighestMigrationId,
+  Route,
+  RouteResponse
+} from '@mockoon/commons';
 import { cloneDeep } from 'lodash';
 import { DataService } from 'src/app/services/data.service';
 import { v1 as uuid } from 'uuid';
-import { Header, RouteResponse, Route, Environment, HighestMigrationId } from '@mockoon/commons';
 
 @Injectable({ providedIn: 'root' })
 export class SchemasBuilderService {
@@ -25,7 +31,7 @@ export class SchemasBuilderService {
       latency: 0,
       statusCode: 200,
       label: '',
-      headers: [this.buildHeader()],
+      headers: [],
       filePath: '',
       sendFileAsBody: false,
       rules: [],

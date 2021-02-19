@@ -1,3 +1,4 @@
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -23,7 +24,7 @@ import { EnvironmentsStatuses, Store, UIState } from 'src/app/stores/store';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class EnvironmentsMenuComponent implements OnInit {
-  @ViewChild('environmentsMenu', { static: false })
+  @ViewChild('environmentsMenu')
   private environmentsMenu: ElementRef;
 
   public activeEnvironment$: Observable<Environment>;
@@ -76,6 +77,19 @@ export class EnvironmentsMenuComponent implements OnInit {
   }
 
   /**
+   * Callback called when reordering environments
+   *
+   * @param event
+   */
+  public reorderEnvironments(event: CdkDragDrop<string[]>) {
+    this.environmentsService.moveMenuItem(
+      'environments',
+      event.previousIndex,
+      event.currentIndex
+    );
+  }
+
+  /**
    * Create a new environment. Append at the end of the list.
    */
   public addEnvironment() {
@@ -107,7 +121,7 @@ export class EnvironmentsMenuComponent implements OnInit {
     // if right click display context menu
     if (
       event &&
-      event.which === 3 &&
+      event.button === 2 &&
       !this.store.getEnvironmentStatus()[environmentUUID]
         .disabledForIncompatibility
     ) {

@@ -72,7 +72,7 @@ describe('UI interactions', () => {
     const tests = new Tests('ui');
 
     const environmentHeadersSelector =
-      'app-headers-list#environment-headers .row.headers-list';
+      'app-headers-list#environment-headers .headers-list';
 
     it('Switch to environment settings and check headers count', async () => {
       await tests.helpers.switchViewInHeader('ENV_SETTINGS');
@@ -125,6 +125,112 @@ describe('UI interactions', () => {
           expect(value).to.equal(expected);
         });
       });
+    });
+  });
+
+  describe('Headers && Rules tabs', () => {
+    const tests = new Tests('ui');
+
+    it('Headers tab shows the header count', async () => {
+      const headersTabSelector =
+        '#route-responses-menu .nav.nav-tabs .nav-item:nth-child(2)';
+
+      let text = await tests.helpers.getElementText(headersTabSelector);
+      expect(text).to.equal('Headers (1)');
+
+      await tests.helpers.switchTab('HEADERS');
+      await tests.helpers.addHeader('route-response-headers', {
+        key: 'route-header',
+        value: 'route-header'
+      });
+
+      // this is needed for the tab re-render to complete
+      await tests.app.client.pause(100);
+      text = await tests.helpers.getElementText(headersTabSelector);
+      expect(text).to.equal('Headers (2)');
+
+      await tests.helpers.addHeader('route-response-headers', {
+        key: 'route-header-2',
+        value: 'route-header-2'
+      });
+
+      // this is needed for the tab re-render to complete
+      await tests.app.client.pause(100);
+      text = await tests.helpers.getElementText(headersTabSelector);
+      expect(text).to.equal('Headers (3)');
+
+      await tests.helpers.addRouteResponse();
+      await tests.helpers.countRouteResponses(2);
+
+      // this is needed for the tab re-render to complete
+      await tests.app.client.pause(100);
+      text = await tests.helpers.getElementText(headersTabSelector);
+      expect(text).to.equal('Headers');
+
+      await tests.helpers.switchTab('HEADERS');
+      await tests.helpers.addHeader('route-response-headers', {
+        key: 'route-header-3',
+        value: 'route-header-3'
+      });
+
+      // this is needed for the tab re-render to complete
+      await tests.app.client.pause(100);
+      text = await tests.helpers.getElementText(headersTabSelector);
+      expect(text).to.equal('Headers (1)');
+    });
+
+    it('Rules tab shows the rule count', async () => {
+      const rulesTabSelector =
+        '#route-responses-menu .nav.nav-tabs .nav-item:nth-child(3)';
+
+      let text = await tests.helpers.getElementText(rulesTabSelector);
+      expect(text).to.equal('Rules');
+
+      await tests.helpers.switchTab('RULES');
+      await tests.helpers.addResponseRule({
+        modifier: 'var',
+        target: 'params',
+        value: '10',
+        isRegex: false
+      });
+
+      // this is needed for the tab re-render to complete
+      await tests.app.client.pause(100);
+      text = await tests.helpers.getElementText(rulesTabSelector);
+      expect(text).to.equal('Rules (1)');
+
+      await tests.helpers.addResponseRule({
+        modifier: 'test',
+        target: 'query',
+        value: 'true',
+        isRegex: false
+      });
+
+      // this is needed for the tab re-render to complete
+      await tests.app.client.pause(100);
+      text = await tests.helpers.getElementText(rulesTabSelector);
+      expect(text).to.equal('Rules (2)');
+
+      await tests.helpers.addRouteResponse();
+      await tests.helpers.countRouteResponses(3);
+
+      // this is needed for the tab re-render to complete
+      await tests.app.client.pause(100);
+      text = await tests.helpers.getElementText(rulesTabSelector);
+      expect(text).to.equal('Rules');
+
+      await tests.helpers.switchTab('RULES');
+      await tests.helpers.addResponseRule({
+        modifier: 'var',
+        target: 'params',
+        value: '10',
+        isRegex: false
+      });
+
+      // this is needed for the tab re-render to complete
+      await tests.app.client.pause(100);
+      text = await tests.helpers.getElementText(rulesTabSelector);
+      expect(text).to.equal('Rules (1)');
     });
   });
 });

@@ -3,7 +3,7 @@
     "uuid": "",
     "lastMigration": 13,
     "name": "Sample v3 schema",
-    "endpointPrefix": "api",
+    "endpointPrefix": "",
     "latency": 0,
     "port": 3000,
     "routes": [

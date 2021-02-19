@@ -1,5 +1,6 @@
+import { DragDropModule } from '@angular/cdk/drag-drop';
 import { HttpClientModule } from '@angular/common/http';
-import { ErrorHandler, NgModule } from '@angular/core';
+import { ErrorHandler, NgModule, SecurityContext } from '@angular/core';
 import { AngularFireModule } from '@angular/fire';
 import { AngularFireAuthModule } from '@angular/fire/auth';
 import { AngularFireRemoteConfigModule } from '@angular/fire/remote-config';
@@ -7,13 +8,12 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
-import { AceEditorModule } from 'ng2-ace-editor';
-import { DragulaModule } from 'ng2-dragula';
 import { MarkdownModule, MarkedOptions } from 'ngx-markdown';
 import { BannerComponent } from 'src/app/components/banner.component';
 import { ChangelogModalComponent } from 'src/app/components/changelog-modal.component';
 import { ContextMenuComponent } from 'src/app/components/context-menu/context-menu.component';
 import { EditorModalComponent } from 'src/app/components/editor-modal/editor-modal.component';
+import { EditorComponent } from 'src/app/components/editor/editor.component';
 import { EnvironmentLogsComponent } from 'src/app/components/environment-logs.component';
 import { EnvironmentsMenuComponent } from 'src/app/components/environments-menu/environments-menu.component';
 import { FooterComponent } from 'src/app/components/footer/footer.component';
@@ -32,6 +32,7 @@ import { ValidPathDirective } from 'src/app/directives/valid-path.directive';
 import { MarkedOptionsFactory } from 'src/app/modules-config/markdown-factory';
 import { GlobalErrorHandler } from 'src/app/services/global-error-handler';
 import { AppComponent } from './app.component';
+import { DuplicateRouteModalComponent } from './components/move-route-modal/duplicate-route-modal.component';
 
 @NgModule({
   declarations: [
@@ -53,17 +54,19 @@ import { AppComponent } from './app.component';
     EnvironmentsMenuComponent,
     RoutesMenuComponent,
     TitleSeparatorComponent,
-    FooterComponent
+    FooterComponent,
+    DuplicateRouteModalComponent,
+    EditorComponent
   ],
   imports: [
-    AceEditorModule,
     BrowserAnimationsModule,
     BrowserModule,
-    DragulaModule.forRoot(),
+    DragDropModule,
     FormsModule,
     HttpClientModule,
     NgbModule,
     MarkdownModule.forRoot({
+      sanitize: SecurityContext.NONE,
       markedOptions: {
         provide: MarkedOptions,
         useFactory: MarkedOptionsFactory

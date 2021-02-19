@@ -45,6 +45,12 @@ export type UIState = {
 
 export type UIStateProperties = { [T in keyof UIState]?: UIState[T] };
 
+export type DuplicateRouteToAnotherEnvironment = {
+  moving: boolean;
+  routeUUID?: string;
+  targetEnvironmentUUID?: string;
+};
+
 export type StoreType = {
   activeTab: TabsNameType;
   activeView: ViewsNameType;
@@ -64,6 +70,7 @@ export type StoreType = {
   userId: string;
   uiState: UIState;
   settings: Settings;
+  duplicateRouteToAnotherEnvironment: DuplicateRouteToAnotherEnvironment;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -88,7 +95,7 @@ export class Store {
         tabSize: INDENT_SIZE
       },
       mode: 'json',
-      theme: 'custom_theme'
+      theme: 'editor-theme'
     },
     duplicatedEnvironments: new Set(),
     duplicatedRoutes: {},
@@ -99,7 +106,8 @@ export class Store {
       environmentsMenuOpened: false,
       appClosing: false
     },
-    settings: null
+    settings: null,
+    duplicateRouteToAnotherEnvironment: { moving: false }
   });
 
   constructor() {}
@@ -233,15 +241,6 @@ export class Store {
   }
 
   /**
-   * Select active route response property observable
-   */
-  public selectActiveRouteResponseProperty<T extends keyof RouteResponse>(
-    path: T
-  ): Observable<RouteResponse[T]> {
-    return this.selectActiveRouteResponse().pipe(pluck(path));
-  }
-
-  /**
    * Select active route response index observable
    */
   public selectActiveRouteResponseIndex(): Observable<number> {
@@ -315,6 +314,22 @@ export class Store {
         (response) =>
           response.uuid === this.store$.value.activeRouteResponseUUID
       );
+  }
+
+  /**
+   * Get route with the supplied UUID from any environment
+   */
+  public getRouteByUUID(routeUUID: string): Route | undefined {
+    let foundRoute: Route;
+    this.store$.value.environments.some((environment: Environment) => {
+      foundRoute = environment.routes.find(
+        (route: Route) => route.uuid === routeUUID
+      );
+
+      return !!foundRoute;
+    });
+
+    return foundRoute;
   }
 
   /**
